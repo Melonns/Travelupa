@@ -33,7 +33,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/*tes perubahan saja sih bang*/
 
 @Composable
 fun GreetingScreen() {
