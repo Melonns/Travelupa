@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import com.example.travelupa.ui.theme.TravelupaTheme
 import kotlin.coroutines.Continuation
 
@@ -33,7 +34,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
+@Preview
 @Composable
 fun GreetingScreen() {
     Box(
@@ -66,7 +67,7 @@ fun GreetingScreen() {
             modifier = Modifier
                 .width(360.dp)
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp)
+                .padding(bottom = 32.dp)
         ) {
             Text(text = "Mulai")
         }
@@ -86,7 +87,7 @@ val daftarTempatWisata = listOf(
         R.drawable.bromo
     )
 )
-
+@Preview
 @Composable
 fun RekomendasiTempatScreen(){
     LazyColumn(modifier = Modifier.padding(horizontal = 24.dp, vertical = 38.dp)) {
@@ -95,7 +96,7 @@ fun RekomendasiTempatScreen(){
         }
     }
 }
-
+//@Preview
 @Composable
 fun TempatItem(tempat : TempatWisata){
     Card(
