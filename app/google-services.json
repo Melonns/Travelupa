@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "35775822157",
-    "project_id": "hology-f2123",
-    "storage_bucket": "hology-f2123.firebasestorage.app"
+    "project_number": "933210295287",
+    "project_id": "travelupa-67bb9",
+    "storage_bucket": "travelupa-67bb9.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:35775822157:android:b8a3a1f674e67c0e211f04",
+        "mobilesdk_app_id": "1:933210295287:android:182f0591f7654bf1bfbcf2",
         "android_client_info": {
-          "package_name": "com.example.travelupa"
+          "package_name": "com.example.travelupa2"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDRrzGpM4CI-rukuHX5OE--SrGdrwxnwSQ"
+          "current_key": "AIzaSyDxIEkE9REjKm_03ReyVCvPdHs64lhSsgk"
         }
       ],
       "services": {
