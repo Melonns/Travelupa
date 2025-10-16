@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
@@ -35,6 +36,7 @@ import coil.request.ImageRequest
 import com.example.travelupa.ui.theme.TravelupaTheme
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.Dispatchers
@@ -42,24 +44,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.TopAppBar
 
-// FIX 1: Class Screen didefinisikan untuk navigasi
-//sealed class Screen(val route: String) {
-//    object Login : Screen("login")
-//    object RekomendasiTempat : Screen("rekomendasi_tempat")
-//}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         FirebaseApp.initializeApp(this)
+        val currentUser: FirebaseUser? = FirebaseAuth.getInstance().currentUser
         setContent {
             TravelupaTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation()
+                    AppNavigation(currentUser)
                 }
             }
         }
@@ -67,13 +67,23 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(currentUser: FirebaseUser?) {
     val navController = rememberNavController()
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route
+        startDestination = if (currentUser != null)
+            Screen.RekomendasiTempat.route else Screen.Greeting.route
     ) {
+        composable(Screen.Greeting.route) {
+            GreetingScreen(
+                onStart = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Greeting.route) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
@@ -86,28 +96,71 @@ fun AppNavigation() {
         composable(Screen.RekomendasiTempat.route) {
             RekomendasiTempatScreen(
                 onBackToLogin = {
-                    navController.navigateUp()
+                    FirebaseAuth.getInstance().signOut()
+                    navController.navigate(Screen.Greeting.route) {
+                        popUpTo(Screen.RekomendasiTempat.route) {
+                            inclusive = true
+                        }
+                    }
                 }
             )
         }
     }
 }
 
+
+@Composable
+fun GreetingScreen(
+    onStart: () -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // DIUBAH: .h4 menjadi .headlineLarge
+            Text(
+                text = "Selamat Datang di Travelupa!",
+                style = MaterialTheme.typography.headlineLarge,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            // DIUBAH: .h6 menjadi .titleLarge
+            Text(
+                text = "Solusi buat kamu yang lupa kemana-mana",
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center
+            )
+        }
+        Button(
+            onClick = onStart,
+            modifier = Modifier
+                .width(360.dp)
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp)
+        ) {
+            Text(text = "Mulai")
+        }
+    }
+}
 data class TempatWisata(
     val nama: String = "",
     val deskripsi: String = "",
     val gambarUriString: String? = null,
     @Transient val gambarResId: Int? = null // @Transient agar tidak ikut di-serialize oleh Firestore
 )
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RekomendasiTempatScreen(onBackToLogin: () -> Unit) {
-    // NOTE: Data dari Firestore akan lebih baik, ini hanya contoh data awal
     var daftarTempatWisata by remember { mutableStateOf(listOf<TempatWisata>()) }
     val firestore = FirebaseFirestore.getInstance()
     val context = LocalContext.current
 
-    // FIX 2: Mengambil data dari Firestore saat pertama kali layar dibuka
     LaunchedEffect(Unit) {
         firestore.collection("tempat_wisata").get()
             .addOnSuccessListener { result ->
@@ -125,6 +178,22 @@ fun RekomendasiTempatScreen(onBackToLogin: () -> Unit) {
     var showTambahDialog by remember { mutableStateOf(false) }
 
     Scaffold(
+        // ================== BAGIAN YANG DITAMBAHKAN ==================
+        topBar = {
+            TopAppBar(
+                title = { Text("Rekomendasi Wisata") },
+                actions = {
+                    // Tombol Logout ada di sini
+                    IconButton(onClick = onBackToLogin) {
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = "Logout"
+                        )
+                    }
+                }
+            )
+        },
+        // =============================================================
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showTambahDialog = true },
@@ -134,6 +203,7 @@ fun RekomendasiTempatScreen(onBackToLogin: () -> Unit) {
             }
         }
     ) { paddingValues ->
+        // Isi dari Column tetap sama
         Column(
             modifier = Modifier
                 .padding(paddingValues)
@@ -144,7 +214,6 @@ fun RekomendasiTempatScreen(onBackToLogin: () -> Unit) {
                     TempatItemEditable(
                         tempat = tempat,
                         onDelete = {
-                            // Hapus dari list lokal dan dari Firestore
                             firestore.collection("tempat_wisata").document(tempat.nama).delete()
                                 .addOnSuccessListener {
                                     daftarTempatWisata = daftarTempatWisata.filter { it.nama != tempat.nama }
@@ -160,12 +229,11 @@ fun RekomendasiTempatScreen(onBackToLogin: () -> Unit) {
         }
 
         if (showTambahDialog) {
-            // FIX 3: Parameter firestore dan context ditambahkan saat memanggil dialog
             TambahTempatWisataDialog(
                 firestore = firestore,
                 context = context,
                 onDismiss = { showTambahDialog = false },
-                onTambah = { tempatBaru -> // FIX 4: Lambda onTambah diubah untuk menerima objek TempatWisata
+                onTambah = { tempatBaru ->
                     daftarTempatWisata = daftarTempatWisata + tempatBaru
                     showTambahDialog = false
                 }
